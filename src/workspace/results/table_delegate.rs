@@ -1,25 +1,14 @@
 use std::ops::Range;
 
-use crate::services::{EnhancedQueryExecutionResult, EnhancedQueryResult, ResultCell};
+use crate::services::{QueryResult, ResultCell};
 use gpui::*;
 use gpui_component::{
-    ActiveTheme as _, Size, h_flex,
+    ActiveTheme as _,
     label::Label,
-    table::{Column, Table, TableDelegate, TableState},
-    v_flex,
+    table::{Column, TableDelegate, TableState},
 };
-use serde::Deserialize;
 
-#[derive(Action, Clone, PartialEq, Eq, Deserialize)]
-#[action(namespace = enhanced_results_panel, no_json)]
-struct ChangeSize(Size);
-
-pub struct EnhancedResultsPanel {
-    current_result: Option<EnhancedQueryExecutionResult>,
-    table: Entity<TableState<EnhancedResultsTableDelegate>>,
-}
-
-struct EnhancedResultsTableDelegate {
+pub struct EnhancedResultsTableDelegate {
     columns: Vec<Column>,
     // Store the full ResultCell data with metadata
     rows: Vec<Vec<ResultCell>>,
@@ -28,7 +17,7 @@ struct EnhancedResultsTableDelegate {
 }
 
 impl EnhancedResultsTableDelegate {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             rows: vec![],
             columns: vec![],
@@ -37,7 +26,7 @@ impl EnhancedResultsTableDelegate {
         }
     }
 
-    pub fn update(&mut self, result: EnhancedQueryResult) {
+    pub fn update(&mut self, result: QueryResult) {
         // Convert ResultRows to Vec<Vec<ResultCell>>
         let rows: Vec<Vec<ResultCell>> = result
             .rows
@@ -74,7 +63,12 @@ impl TableDelegate for EnhancedResultsTableDelegate {
         self.columns.get(col_ix).unwrap()
     }
 
-    fn render_th(&self, col_ix: usize, _: &mut Window, cx: &mut App) -> impl IntoElement {
+    fn render_th(
+        &mut self,
+        col_ix: usize,
+        _: &mut Window,
+        cx: &mut Context<TableState<Self>>,
+    ) -> impl IntoElement {
         let col = self.column(col_ix, cx);
         div().child(format!("{}", col.clone().name))
         // let col_meta = if !self.rows.is_empty() && col_ix < self.rows[0].len() {
@@ -108,9 +102,14 @@ impl TableDelegate for EnhancedResultsTableDelegate {
         // th
     }
 
-    fn render_tr(&self, row_ix: usize, _: &mut Window, _cx: &mut App) -> gpui::Stateful<gpui::Div> {
+    fn render_tr(
+        &mut self,
+        row_ix: usize,
+        _: &mut Window,
+        _cx: &mut Context<TableState<Self>>,
+    ) -> gpui::Stateful<gpui::Div> {
         div().id(row_ix).on_click(move |ev: &ClickEvent, _, _| {
-            println!(
+            tracing::debug!(
                 "You have clicked row {} with secondary: {}",
                 row_ix,
                 ev.modifiers().secondary()
@@ -119,11 +118,11 @@ impl TableDelegate for EnhancedResultsTableDelegate {
     }
 
     fn render_td(
-        &self,
+        &mut self,
         row_ix: usize,
         col_ix: usize,
         _: &mut Window,
-        cx: &mut App,
+        cx: &mut Context<TableState<Self>>,
     ) -> impl IntoElement {
         // println!("render_td called: row={}, col={}", row_ix, col_ix);
         // Don't clone all rows - access directly instead
@@ -136,15 +135,18 @@ impl TableDelegate for EnhancedResultsTableDelegate {
                     .cursor_pointer()
                     .on_mouse_up(MouseButton::Left, move |_ev, _, _| {
                         // Log all the metadata for this cell
-                        println!("\n=== CELL METADATA ===");
-                        println!("Column Name: {}", cell_clone.column_metadata.name);
-                        println!("Column Type: {}", cell_clone.column_metadata.type_name);
-                        println!("Column Ordinal: {}", cell_clone.column_metadata.ordinal);
-                        println!("Table Name: {:?}", cell_clone.column_metadata.table_name);
-                        println!("Is Nullable: {:?}", cell_clone.column_metadata.is_nullable);
-                        println!("Value: {}", cell_clone.value);
-                        println!("Is NULL: {}", cell_clone.is_null);
-                        println!("====================\n");
+                        tracing::debug!("\n=== CELL METADATA ===");
+                        tracing::debug!("Column Name: {}", cell_clone.column_metadata.name);
+                        tracing::debug!("Column Type: {}", cell_clone.column_metadata.type_name);
+                        tracing::debug!("Column Ordinal: {}", cell_clone.column_metadata.ordinal);
+                        tracing::debug!("Table Name: {:?}", cell_clone.column_metadata.table_name);
+                        tracing::debug!(
+                            "Is Nullable: {:?}",
+                            cell_clone.column_metadata.is_nullable
+                        );
+                        tracing::debug!("Value: {}", cell_clone.value);
+                        tracing::debug!("Is NULL: {}", cell_clone.is_null);
+                        tracing::debug!("====================\n");
                     })
                     .child(if cell.is_null {
                         // Style NULL values differently
@@ -209,72 +211,5 @@ impl TableDelegate for EnhancedResultsTableDelegate {
         _: &mut Context<TableState<Self>>,
     ) {
         self.visible_rows = visible_range;
-    }
-}
-
-impl EnhancedResultsPanel {
-    pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let delegate = EnhancedResultsTableDelegate::new();
-        let table = cx.new(|cx| TableState::new(delegate, window, cx).sortable(false));
-
-        Self {
-            current_result: None,
-            table,
-        }
-    }
-
-    pub fn view(window: &mut Window, cx: &mut App) -> Entity<Self> {
-        cx.new(|cx| Self::new(window, cx))
-    }
-
-    pub fn update_result(&mut self, result: EnhancedQueryExecutionResult, cx: &mut Context<Self>) {
-        self.current_result = Some(result.clone());
-        if let EnhancedQueryExecutionResult::Select(x) = result {
-            self.table.update(cx, |table, cx| {
-                table.delegate_mut().update(x.clone());
-                table.refresh(cx);
-            });
-        }
-        cx.notify();
-    }
-}
-
-impl Render for EnhancedResultsPanel {
-    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        match &self.current_result {
-            Some(EnhancedQueryExecutionResult::Select(_result)) => v_flex()
-                .size_full()
-                .p_4()
-                .child(Table::new(&self.table.clone()).stripe(true)),
-            Some(EnhancedQueryExecutionResult::Modified {
-                rows_affected,
-                execution_time_ms,
-            }) => h_flex().size_full().items_center().justify_center().child(
-                Label::new(format!(
-                    "Query executed successfully. {} rows affected in {}ms",
-                    rows_affected, execution_time_ms
-                ))
-                .text_sm()
-                .text_color(cx.theme().accent_foreground),
-            ),
-            Some(EnhancedQueryExecutionResult::Error(error)) => v_flex().size_full().p_4().child(
-                div()
-                    .p_4()
-                    .bg(cx.theme().danger)
-                    .border_1()
-                    .border_color(cx.theme().danger)
-                    .rounded(cx.theme().radius)
-                    .child(
-                        Label::new(format!("Error: {}", error))
-                            .text_sm()
-                            .text_color(cx.theme().danger_foreground),
-                    ),
-            ),
-            _ => h_flex().size_full().items_center().justify_center().child(
-                Label::new("Execute a query to see results here")
-                    .text_sm()
-                    .text_color(cx.theme().muted_foreground),
-            ),
-        }
     }
 }

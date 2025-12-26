@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release (e.g., 0.1.20)"
+        required: true
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-macos:
+    runs-on: macos-14 # Apple Silicon runner
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build app bundle
+        run: cargo run --release --bin build-app
+
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+
+          # Get version from tag or manual input
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION=${GITHUB_REF_NAME#v}
+          fi
+
+          create-dmg \
+            --volname "PGUI $VERSION" \
+            --volicon "PGUI.app/Contents/Resources/AppIcon.icns" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "PGUI.app" 150 185 \
+            --app-drop-link 450 185 \
+            --hide-extension "PGUI.app" \
+            "PGUI-${VERSION}-macos-arm64.dmg" \
+            "PGUI.app"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-arm64
+          path: "*.dmg"
+
+  release:
+    needs: [build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        # Only create release on tag push, not manual runs
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: artifacts/**/*.dmg
+          generate_release_notes: true
+          draft: false
+
+      - name: Upload artifacts summary (manual run)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        run: |
+          echo "## 📦 Build Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "DMG files built successfully! Download from the Artifacts section above." >> $GITHUB_STEP_SUMMARY
+          ls -la artifacts/

@@ -4,16 +4,24 @@ A high performance GUI to query & manage postgres databases.
 
 Written in [GPUI](https://gpui.rs) with [GPUI Component](https://github.com/longbridge/gpui-component)
 
-### Saved Connections
+<img src="https://github.com/duanebester/pgui/blob/main/assets/screenshots/pgui-dual.png" height="400px" />
 
-Connections will be saved to a sqlite db file in `~/.pgui/connections.db`
+### Connections
 
-Passwords are saved in the host OS secure store via Keyring.rs.
+Connections and query history will be saved to a sqlite db file in `~/.pgui/pgui.db`
 
-As of 2025-11-18:
+Passwords are saved in the host OS secure store via Keyring crate.
 
-![screengrab-dark](./assets/screenshots/2025-11-18-dark.png)
+### Agent Panel
 
-![screengrab-light](./assets/screenshots/2025-11-18-light.png)
+Only Anthropic support w/ `ANTHROPIC_API_KEY` via enviroment.
+
+### AI Completions (Cmd+.)
+
+AI Completions are triggered via code actions (cmd + .) or via the inline completions toggle.
+
+> Note: currently hard-coded to claude haiku 4.5
+
+### Building
 
 See [Mac App Build](./MAC_APP_BUILD.md) for building locally on MacOS

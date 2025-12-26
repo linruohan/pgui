@@ -3,12 +3,13 @@ use gpui_component::{
     button::{Button, ButtonVariants as _},
     form::{field, v_form},
     input::{Input, InputState},
+    notification::NotificationType,
     *,
 };
 
 use crate::{
-    services::{ConnectionInfo, SslMode},
-    state::ConnectionState,
+    services::{ConnectionInfo, ConnectionsRepository, DatabaseManager, SslMode},
+    state::{add_connection, connect, delete_connection, update_connection},
 };
 
 #[allow(dead_code)]
@@ -27,6 +28,7 @@ pub struct ConnectionForm {
     database: Entity<InputState>,
     port: Entity<InputState>,
     active_connection: Option<ConnectionInfo>,
+    is_testing: bool,
 }
 
 impl ConnectionForm {
@@ -76,6 +78,7 @@ impl ConnectionForm {
                 database,
                 port,
                 active_connection: connection,
+                is_testing: false,
             }
         })
     }
@@ -134,20 +137,35 @@ impl ConnectionForm {
     }
 
     fn connect(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if let Some(connection) = self.get_connection(cx) {
-            ConnectionState::connect(&connection, cx);
+        if let Some(connection) = self.get_connection(window, cx) {
+            connect(&connection, cx);
             self.clear(window, cx);
             cx.notify();
         }
     }
 
-    fn get_connection(&mut self, cx: &mut Context<Self>) -> Option<ConnectionInfo> {
+    fn get_connection(
+        &mut self,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Option<ConnectionInfo> {
         let name = self.name.read(cx).value();
         let hostname = self.hostname.read(cx).value();
         let username = self.username.read(cx).value();
         let password = self.password.read(cx).value();
         let database = self.database.read(cx).value();
         let port = self.port.read(cx).value();
+
+        // For editing: if password is empty, try to fetch from keychain
+        let password = if password.is_empty() {
+            if let Some(ref active) = self.active_connection {
+                ConnectionsRepository::get_connection_password(&active.id).unwrap_or_default()
+            } else {
+                password.to_string()
+            }
+        } else {
+            password.to_string()
+        };
 
         // Validate inputs
         if name.is_empty()
@@ -157,29 +175,35 @@ impl ConnectionForm {
             || database.is_empty()
             || port.is_empty()
         {
-            // TODO: Show validation error
+            window.push_notification(
+                (
+                    NotificationType::Error,
+                    "Not all fields have values. Please try again.",
+                ),
+                cx,
+            );
             return None;
         }
 
         let port_num = match port.parse::<usize>() {
             Ok(num) => {
-                println!("Successfully parsed: {}", num);
+                tracing::debug!("Successfully parsed: {}", num);
                 num // The result of the match expression is the parsed number
             }
             Err(e) => {
-                eprintln!("Failed to parse integer: {}", e);
+                tracing::error!("Failed to parse integer: {}", e);
                 // Return a default value or handle the error in another way
                 0
             }
         };
 
         if port_num < 1 {
-            // TODO: Show validation error
+            window.push_notification((NotificationType::Error, "Invalid port number."), cx);
             return None;
         }
 
         if port_num > 65_535 {
-            // TODO: Show validation error
+            window.push_notification((NotificationType::Error, "Invalid port number."), cx);
             return None;
         }
 
@@ -208,22 +232,63 @@ impl ConnectionForm {
     }
 
     fn save_connection(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if let Some(connection) = self.get_connection(cx) {
-            ConnectionState::add_connection(connection, cx);
+        if let Some(connection) = self.get_connection(window, cx) {
+            add_connection(connection, cx);
             self.clear(window, cx);
         }
     }
 
-    fn update_connection(&mut self, _window: &mut Window, cx: &mut Context<Self>) {
-        if let Some(connection) = self.get_connection(cx) {
-            ConnectionState::update_connection(connection, cx);
+    fn update_connection(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(connection) = self.get_connection(window, cx) {
+            update_connection(connection, cx);
         }
     }
 
     fn delete_connection(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        if let Some(connection) = self.get_connection(cx) {
-            ConnectionState::delete_connection(connection, cx);
+        if let Some(connection) = self.active_connection.clone() {
+            delete_connection(connection, cx);
             self.clear(window, cx);
+        }
+    }
+
+    fn test_connection(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.is_testing {
+            return;
+        }
+
+        if let Some(connection) = self.get_connection(window, cx) {
+            self.is_testing = true;
+            cx.notify();
+
+            let connect_options = connection.to_pg_connect_options();
+            let entity = cx.entity();
+
+            cx.spawn_in(window, async move |_this, cx| {
+                let result = DatabaseManager::test_connection_options(connect_options).await;
+
+                let _ = cx.update(|window, cx| {
+                    match result {
+                        Ok(_) => {
+                            window.push_notification(
+                                (NotificationType::Success, "Connection successful!"),
+                                cx,
+                            );
+                        }
+                        Err(e) => {
+                            let error_msg: SharedString =
+                                format!("Connection failed: {}", e).into();
+                            tracing::error!("{}", error_msg.clone());
+                            window.push_notification((NotificationType::Error, error_msg), cx);
+                        }
+                    }
+
+                    cx.update_entity(&entity, |form, cx| {
+                        form.is_testing = false;
+                        cx.notify();
+                    });
+                });
+            })
+            .detach();
         }
     }
 }
@@ -287,6 +352,14 @@ impl Render for ConnectionForm {
                             h_flex()
                                 .mt_2()
                                 .gap_2()
+                                .child(
+                                    Button::new("test-connection")
+                                        .child("Test Connection")
+                                        .loading(self.is_testing)
+                                        .on_click(cx.listener(|this, _, win, cx| {
+                                            this.test_connection(win, cx)
+                                        })),
+                                )
                                 .when(self.active_connection.clone().is_none(), |d| {
                                     d.child(
                                         Button::new("save-connection")
@@ -302,8 +375,30 @@ impl Render for ConnectionForm {
                                         Button::new("delete-connection")
                                             .child("Delete")
                                             .danger()
-                                            .on_click(cx.listener(|this, _, win, cx| {
-                                                this.delete_connection(win, cx)
+                                            .on_click(cx.listener(|_this, _, win, cx| {
+                                              let entity = cx.entity();
+                                              win.open_dialog(cx, move |dialog, _win, _cx| {
+                                                let entity_clone = entity.clone();
+                                                dialog
+                                                    .confirm()
+                                                    .child("Are you sure you want to delete this connection?")
+                                                    .on_ok(move |_, window, cx| {
+                                                        cx.update_entity(&entity_clone.clone(), |entity, cx| {
+                                                          entity.delete_connection(window, cx);
+                                                          cx.notify();
+                                                        });
+
+                                                        // Notify delete
+                                                        window.push_notification(
+                                                            (
+                                                                NotificationType::Success,
+                                                                "Deleted",
+                                                            ),
+                                                            cx,
+                                                        );
+                                                        true
+                                                    })
+                                              });
                                             })),
                                     )
                                     .child(

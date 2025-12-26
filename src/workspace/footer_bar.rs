@@ -2,7 +2,7 @@ use gpui::prelude::FluentBuilder as _;
 use gpui::*;
 use gpui_component::button::{Button, ButtonVariants as _};
 use gpui_component::label::Label;
-use gpui_component::{ActiveTheme, Icon, Selectable as _, Sizable as _};
+use gpui_component::{ActiveTheme, Icon, IconName, Selectable as _, Sizable as _};
 
 use crate::services::ConnectionInfo;
 use crate::state::{ConnectionState, ConnectionStatus};
@@ -10,13 +10,16 @@ use crate::state::{ConnectionState, ConnectionStatus};
 pub struct FooterBar {
     active_connection: Option<ConnectionInfo>,
     tables_active: bool,
+    agent_active: bool,
+    history_active: bool,
     is_connected: bool,
     _subscriptions: Vec<Subscription>,
 }
 
 pub enum FooterBarEvent {
-    HideTables,
-    ShowTables,
+    ToggleTables(bool), // true = show
+    ToggleAgent(bool),
+    ToggleHistory(bool),
 }
 
 impl EventEmitter<FooterBarEvent> for FooterBar {}
@@ -33,6 +36,8 @@ impl FooterBar {
         Self {
             active_connection: None,
             tables_active: true,
+            agent_active: false,
+            history_active: false,
             is_connected: false,
             _subscriptions,
         }
@@ -53,9 +58,45 @@ impl Render for FooterBar {
             .on_click(cx.listener(|this, _evt, _win, cx| {
                 this.tables_active = !this.tables_active;
                 if this.tables_active {
-                    cx.emit(FooterBarEvent::ShowTables);
+                    cx.emit(FooterBarEvent::ToggleTables(true));
                 } else {
-                    cx.emit(FooterBarEvent::HideTables);
+                    cx.emit(FooterBarEvent::ToggleTables(false));
+                }
+                cx.notify();
+            }));
+
+        let agent_button = Button::new("agent_button")
+            .icon(IconName::Bot)
+            .small()
+            .ghost()
+            .selected(self.agent_active.clone())
+            .tooltip("Toggle Agent Panel")
+            .on_click(cx.listener(|this, _evt, _win, cx| {
+                this.agent_active = !this.agent_active;
+                if this.agent_active {
+                    cx.emit(FooterBarEvent::ToggleAgent(true));
+                    this.history_active = false;
+                    cx.emit(FooterBarEvent::ToggleHistory(false));
+                } else {
+                    cx.emit(FooterBarEvent::ToggleAgent(false));
+                }
+                cx.notify();
+            }));
+
+        let history_button = Button::new("history_button")
+            .icon(Icon::empty().path("icons/history.svg"))
+            .small()
+            .ghost()
+            .selected(self.history_active.clone())
+            .tooltip("Toggle History Panel")
+            .on_click(cx.listener(|this, _evt, _win, cx| {
+                this.history_active = !this.history_active;
+                if this.history_active {
+                    cx.emit(FooterBarEvent::ToggleHistory(true));
+                    this.agent_active = false;
+                    cx.emit(FooterBarEvent::ToggleAgent(false));
+                } else {
+                    cx.emit(FooterBarEvent::ToggleHistory(false));
                 }
                 cx.notify();
             }));
@@ -87,28 +128,39 @@ impl Render for FooterBar {
                     .opacity(0.6)
             });
 
-        let controls = div()
+        let left_controls = div()
             .flex()
             .flex_row()
-            .justify_center()
+            .justify_between()
             .items_center()
-            .gap_2()
+            .gap_1()
             .when(!self.is_connected.clone(), |d| d.invisible())
             .child(tables_button);
+
+        let right_controls = div()
+            .flex()
+            .flex_row()
+            .justify_between()
+            .items_center()
+            .gap_1()
+            .when(!self.is_connected.clone(), |d| d.invisible())
+            .child(history_button)
+            .child(agent_button);
 
         let footer = div()
             .border_t_1()
             .text_xs()
             .bg(cx.theme().title_bar)
             .border_color(cx.theme().border)
-            .flex()
-            .flex_row()
-            .justify_start()
-            .items_center()
+            .w_full()
             .py_1()
             .px_2()
-            .child(controls);
-        // .child(connection_status);
+            .flex()
+            .flex_row()
+            .justify_between()
+            .items_center()
+            .child(left_controls)
+            .child(right_controls);
 
         footer
     }
