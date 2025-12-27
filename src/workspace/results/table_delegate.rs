@@ -126,38 +126,35 @@ impl TableDelegate for EnhancedResultsTableDelegate {
     ) -> impl IntoElement {
         // println!("render_td called: row={}, col={}", row_ix, col_ix);
         // Don't clone all rows - access directly instead
-        if let Some(row) = self.rows.get(row_ix) {
-            if let Some(cell) = row.get(col_ix) {
-                // Only clone the specific cell we need for the closure
-                let cell_clone = cell.clone();
-                // Create a clickable cell that logs metadata on click
-                return div()
-                    .cursor_pointer()
-                    .on_mouse_up(MouseButton::Left, move |_ev, _, _| {
-                        // Log all the metadata for this cell
-                        tracing::debug!("\n=== CELL METADATA ===");
-                        tracing::debug!("Column Name: {}", cell_clone.column_metadata.name);
-                        tracing::debug!("Column Type: {}", cell_clone.column_metadata.type_name);
-                        tracing::debug!("Column Ordinal: {}", cell_clone.column_metadata.ordinal);
-                        tracing::debug!("Table Name: {:?}", cell_clone.column_metadata.table_name);
-                        tracing::debug!(
-                            "Is Nullable: {:?}",
-                            cell_clone.column_metadata.is_nullable
-                        );
-                        tracing::debug!("Value: {}", cell_clone.value);
-                        tracing::debug!("Is NULL: {}", cell_clone.is_null);
-                        tracing::debug!("====================\n");
-                    })
-                    .child(if cell.is_null {
-                        // Style NULL values differently
-                        Label::new(&cell.value)
-                            .text_color(cx.theme().muted_foreground)
-                            .italic()
-                    } else {
-                        Label::new(&cell.value)
-                    })
-                    .into_any_element();
-            }
+        if let Some(row) = self.rows.get(row_ix)
+            && let Some(cell) = row.get(col_ix)
+        {
+            // Only clone the specific cell we need for the closure
+            let cell_clone = cell.clone();
+            // Create a clickable cell that logs metadata on click
+            return div()
+                .cursor_pointer()
+                .on_mouse_up(MouseButton::Left, move |_ev, _, _| {
+                    // Log all the metadata for this cell
+                    tracing::debug!("\n=== CELL METADATA ===");
+                    tracing::debug!("Column Name: {}", cell_clone.column_metadata.name);
+                    tracing::debug!("Column Type: {}", cell_clone.column_metadata.type_name);
+                    tracing::debug!("Column Ordinal: {}", cell_clone.column_metadata.ordinal);
+                    tracing::debug!("Table Name: {:?}", cell_clone.column_metadata.table_name);
+                    tracing::debug!("Is Nullable: {:?}", cell_clone.column_metadata.is_nullable);
+                    tracing::debug!("Value: {}", cell_clone.value);
+                    tracing::debug!("Is NULL: {}", cell_clone.is_null);
+                    tracing::debug!("====================\n");
+                })
+                .child(if cell.is_null {
+                    // Style NULL values differently
+                    Label::new(&cell.value)
+                        .text_color(cx.theme().muted_foreground)
+                        .italic()
+                } else {
+                    Label::new(&cell.value)
+                })
+                .into_any_element();
         }
 
         "--".into_any_element()

@@ -13,7 +13,7 @@ pub async fn handle_outgoing(
     outgoing_rx: Receiver<AgentRequest>,
     incoming_tx: Sender<AgentResponse>,
 ) {
-    if let Some(mut agent) = Agent::builder()
+    if let Ok(mut agent) = Agent::builder()
         .system_prompt(
             "You are a helpful, succint, postgres assistant with access to database tools. \
           Please respond only in markdown and no emojis. \
@@ -26,7 +26,6 @@ pub async fn handle_outgoing(
             create_get_tables_tool(),
             create_get_table_columns_tool(),
         ])
-        .ok()
     {
         // Get API key for file uploads
         let api_key = std::env::var("ANTHROPIC_API_KEY").unwrap_or_default();
@@ -133,7 +132,7 @@ pub async fn handle_incoming(
                         text, tool_calls, ..
                     } => {
                         // Execute tools with database access
-                        let results = execute_tools(tool_calls.clone(), &cx).await;
+                        let results = execute_tools(tool_calls.clone(), cx).await;
 
                         if let Some(view) = this.upgrade() {
                             let _ = cx.update_entity(&view, |this, cx| {

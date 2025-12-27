@@ -32,12 +32,12 @@ impl ConnectionState {
 
         // Load saved connections on startup
         cx.spawn(async move |cx| {
-            if let Ok(store) = AppStore::singleton().await {
-                if let Ok(connections) = store.connections().load_all().await {
-                    let _ = cx.update_global::<ConnectionState, _>(|app_state, _cx| {
-                        app_state.saved_connections = connections;
-                    });
-                }
+            if let Ok(store) = AppStore::singleton().await
+                && let Ok(connections) = store.connections().load_all().await
+            {
+                let _ = cx.update_global::<ConnectionState, _>(|app_state, _cx| {
+                    app_state.saved_connections = connections;
+                });
             }
         })
         .detach();

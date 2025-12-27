@@ -11,9 +11,10 @@ use sqlx::postgres::{PgConnectOptions, PgSslMode};
 use uuid::Uuid;
 
 /// SSL mode options for PostgreSQL connections
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub enum SslMode {
     Disable,
+    #[default]
     Prefer,
     Require,
     VerifyCa,
@@ -35,12 +36,6 @@ impl SelectItem for SslMode {
             SslMode::VerifyCa => &"verify-ca",
             SslMode::VerifyFull => &"verify-full",
         }
-    }
-}
-
-impl Default for SslMode {
-    fn default() -> Self {
-        SslMode::Prefer
     }
 }
 

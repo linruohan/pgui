@@ -51,7 +51,7 @@ impl RenderOnce for ConnectionListItem {
 
         let bg_color = if self.selected {
             cx.theme().list_active
-        } else if self.ix.row % 2 == 0 {
+        } else if self.ix.row.is_multiple_of(2) {
             cx.theme().list
         } else {
             cx.theme().list_even

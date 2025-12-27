@@ -84,11 +84,9 @@ impl Editor {
                     .map(|table| {
                         let table = table.clone();
                         CompletionItem {
-                            label: table.table_name.into(),
+                            label: table.table_name,
                             kind: Some(lsp_types::CompletionItemKind::CLASS), // Better kind for tables
-                            detail: Some(
-                                format!("{}:{}", table.table_schema, table.table_type).into(),
-                            ),
+                            detail: Some(format!("{}:{}", table.table_schema, table.table_type)),
                             ..Default::default()
                         }
                     })
@@ -134,11 +132,11 @@ impl Editor {
                 this.reparse_queries(cx);
             }),
             cx.observe_global::<EditorCodeActions>(move |this, cx| {
-                this.code_actions_loading = cx.global::<EditorCodeActions>().loading.clone();
+                this.code_actions_loading = cx.global::<EditorCodeActions>().loading;
                 cx.notify();
             }),
             cx.observe_global::<EditorInlineCompletions>(move |this, cx| {
-                this.code_actions_loading = cx.global::<EditorInlineCompletions>().loading.clone();
+                this.code_actions_loading = cx.global::<EditorInlineCompletions>().loading;
                 cx.notify();
             }),
         ];
@@ -259,8 +257,7 @@ impl Render for Editor {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let connection_name = self.active_connection.clone().map(|x| x.name.clone());
 
-        let show_ai_loading =
-            self.code_actions_loading.clone() || self.inline_completions_loading.clone();
+        let show_ai_loading = self.code_actions_loading || self.inline_completions_loading;
 
         let disconnect_button = Button::new("disconnect_button")
             .icon(Icon::empty().path("icons/power.svg"))
@@ -302,7 +299,7 @@ impl Render for Editor {
             .small()
             .primary()
             .ghost()
-            .selected(self.inline_completions_enabled.clone())
+            .selected(self.inline_completions_enabled)
             .disabled(self.is_formatting || self.is_executing)
             .on_click(cx.listener(Self::toggle_inline_completions));
 

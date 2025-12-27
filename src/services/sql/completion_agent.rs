@@ -15,7 +15,7 @@ RULES:
 "#;
 
 pub fn build_completion_agent() -> Option<Agent> {
-    let agent = match Agent::builder()
+    match Agent::builder()
         .system_prompt(COMPLETION_SYSTEM_PROMPT.to_string())
         .model("claude-haiku-4-5-20251001".to_string())
         .max_tokens(1024)
@@ -26,8 +26,7 @@ pub fn build_completion_agent() -> Option<Agent> {
             tracing::error!("Failed to create completion agent: {}", e);
             None
         }
-    };
-    agent
+    }
 }
 
 pub async fn get_completion(agent: &mut Agent, prompt: String) -> Option<String> {

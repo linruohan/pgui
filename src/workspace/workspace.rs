@@ -169,20 +169,20 @@ impl Workspace {
             })
             .ok();
 
-            if let Some(conn) = active_connection {
-                if let Ok(store) = AppStore::singleton().await {
-                    let _ = store
-                        .history()
-                        .record(
-                            &conn.id,
-                            &query.clone(),
-                            execution_time_ms.unwrap_or(0),
-                            rows_affected,
-                            true,
-                            None,
-                        )
-                        .await;
-                }
+            if let Some(conn) = active_connection
+                && let Ok(store) = AppStore::singleton().await
+            {
+                let _ = store
+                    .history()
+                    .record(
+                        &conn.id,
+                        &query.clone(),
+                        execution_time_ms.unwrap_or(0),
+                        rows_affected,
+                        true,
+                        None,
+                    )
+                    .await;
             }
         })
         .detach();
@@ -232,14 +232,12 @@ impl Workspace {
     }
 
     fn render_disconnected(&mut self, cx: &mut Context<Self>) -> Stateful<Div> {
-        let content = div()
+        div()
             .id("connection-manager")
             .flex()
             .flex_1()
             .bg(cx.theme().background)
-            .child(self.connection_manager.clone());
-
-        content
+            .child(self.connection_manager.clone())
     }
 
     fn render_connected(&mut self, cx: &mut Context<Self>) -> Stateful<Div> {
@@ -296,23 +294,21 @@ impl Workspace {
                     ),
             );
 
-        let content = div()
+        div()
             .id("connected-content")
             .flex()
             .flex_row()
             .flex_1()
             .h_full()
             .bg(cx.theme().background)
-            .when(self.show_tables.clone(), |d| d.child(sidebar))
+            .when(self.show_tables, |d| d.child(sidebar))
             .child(main)
-            .when(self.show_agent.clone(), |d| d.child(agent))
-            .when(self.show_history.clone(), |d| d.child(history));
-
-        content
+            .when(self.show_agent, |d| d.child(agent))
+            .when(self.show_history, |d| d.child(history))
     }
 
     fn render_loading(&mut self, cx: &mut Context<Self>) -> Stateful<Div> {
-        let content = div()
+        div()
             .id("loading-content")
             .flex()
             .flex_grow()
@@ -326,9 +322,7 @@ impl Workspace {
                     .items_center()
                     .child(Spinner::new())
                     .child("Loading"),
-            );
-
-        content
+            )
     }
 }
 

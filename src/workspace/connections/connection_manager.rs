@@ -33,7 +33,7 @@ impl ConnectionManager {
         let _subscriptions = vec![
             cx.observe_global::<ConnectionState>(move |_this, cx| {
                 let conns = cx.global::<ConnectionState>().saved_connections.clone();
-                let _ = cx.update_entity(&conn_list_clone, |list, cx| {
+                cx.update_entity(&conn_list_clone, |list, cx| {
                     list.delegate_mut().update_connections(conns);
                     cx.notify();
                 });
@@ -53,11 +53,10 @@ impl ConnectionManager {
                                 this.is_editing = false;
                                 cx.notify();
 
-                                let _ =
-                                    cx.update_entity(&this.connection_form.clone(), |form, cx| {
-                                        form.set_connection(conn.clone(), win, cx);
-                                        cx.notify();
-                                    });
+                                cx.update_entity(&this.connection_form.clone(), |form, cx| {
+                                    form.set_connection(conn.clone(), win, cx);
+                                    cx.notify();
+                                });
                             }
                         }
                         _ => {
@@ -147,15 +146,13 @@ impl Render for ConnectionManager {
             .min_w(px(300.0))
             .child(self.render_connections_list(cx));
 
-        let show_wecome = self.selected_connection.clone().is_none()
-            && !self.is_creating.clone()
-            && !self.is_editing.clone();
+        let show_wecome =
+            self.selected_connection.clone().is_none() && !self.is_creating && !self.is_editing;
 
-        let show_connection_info = self.selected_connection.clone().is_some()
-            && !self.is_creating.clone()
-            && !self.is_editing.clone();
+        let show_connection_info =
+            self.selected_connection.clone().is_some() && !self.is_creating && !self.is_editing;
 
-        let show_form = self.is_editing.clone() || self.is_creating.clone();
+        let show_form = self.is_editing || self.is_creating;
 
         let main = div()
             .id("connection-manager-main")

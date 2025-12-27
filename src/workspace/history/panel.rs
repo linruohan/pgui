@@ -227,7 +227,7 @@ impl HistoryPanel {
             Icon::new(IconName::CircleX).text_color(cx.theme().danger)
         };
 
-        let bg_color = if ix % 2 == 0 {
+        let bg_color = if ix.is_multiple_of(2) {
             cx.theme().list
         } else {
             cx.theme().list_even

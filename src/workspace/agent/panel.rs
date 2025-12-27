@@ -128,7 +128,7 @@ impl AgentPanel {
         cx: &mut Context<Self>,
     ) -> AnyElement {
         let items = self.message_state.read(cx).messages.clone();
-        if items.len() == 0 {
+        if items.is_empty() {
             return div().into_any_element();
         }
         let item = items.get(ix).unwrap().clone();
@@ -363,7 +363,7 @@ impl Render for AgentPanel {
                 Button::new("send")
                     .rounded_full()
                     .bg(cx.theme().accent)
-                    .loading(self.is_loading.clone())
+                    .loading(self.is_loading)
                     .icon(Icon::empty().path("icons/move-up.svg"))
                     .on_click(cx.listener(Self::on_submit)),
             );
@@ -383,7 +383,7 @@ impl Render for AgentPanel {
                 div().flex().flex_col().child(form_header).child(
                     Input::new(&self.textarea.clone())
                         .appearance(false)
-                        .disabled(!self.has_api_key.clone()),
+                        .disabled(!self.has_api_key),
                 ),
             )
             .child(form_footer);
@@ -402,7 +402,7 @@ impl Render for AgentPanel {
                         .size_full(),
                     ),
                 )
-                .when(!self.has_api_key.clone(), |d| {
+                .when(!self.has_api_key, |d| {
                     d.child(
                         Alert::error(
                             "no-api-key",
@@ -411,7 +411,7 @@ impl Render for AgentPanel {
                         .title("No Anthropic API Key"),
                     )
                 })
-                .when(self.has_api_key.clone(), |d| d.child(form)),
+                .when(self.has_api_key, |d| d.child(form)),
         )
     }
 }

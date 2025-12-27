@@ -41,7 +41,7 @@ where
         row_count += 1;
 
         // Flush periodically to avoid memory buildup
-        if row_count % 10_000 == 0 {
+        if row_count.is_multiple_of(10_000) {
             wtr.flush()?;
         }
     }
@@ -52,10 +52,10 @@ where
 
 fn extract_value(row: &PgRow, index: usize, _col: &sqlx::postgres::PgColumn) -> String {
     // Check for NULL first
-    if let Ok(raw) = row.try_get_raw(index) {
-        if raw.is_null() {
-            return String::new(); // CSV NULL representation
-        }
+    if let Ok(raw) = row.try_get_raw(index)
+        && raw.is_null()
+    {
+        return String::new(); // CSV NULL representation
     }
 
     // Try string first, then specific types

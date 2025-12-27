@@ -225,7 +225,7 @@ async fn fetch_table_name(oid: Oid, pool: &PgPool) -> Option<String> {
     "#;
 
     sqlx::query(query)
-        .bind(&oid)
+        .bind(oid)
         .fetch_one(pool)
         .await
         .ok()?
@@ -242,7 +242,7 @@ async fn fetch_nullable_info(oid: Oid, pool: &PgPool) -> Result<Vec<(String, boo
         AND NOT attisdropped
     "#;
 
-    let rows = sqlx::query(query).bind(&oid).fetch_all(pool).await?;
+    let rows = sqlx::query(query).bind(oid).fetch_all(pool).await?;
 
     Ok(rows
         .iter()

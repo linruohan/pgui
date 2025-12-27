@@ -66,8 +66,7 @@ impl SqlCompletionProvider {
     }
 
     fn get_inline_completions_enabled(&self) -> bool {
-        let guard = self.inline_completions_enabled.load(Ordering::SeqCst);
-        guard.clone()
+        self.inline_completions_enabled.load(Ordering::SeqCst)
     }
 
     /// Adds schema-derived completions (table names, column names, etc.)
@@ -193,7 +192,7 @@ impl CompletionProvider for SqlCompletionProvider {
         let mut agent = self.agent.clone().unwrap();
         let schema = self.get_schema().clone();
 
-        let task = cx.spawn(async move |_this, cx| {
+        cx.spawn(async move |_this, cx| {
             let res = cx
                 .background_spawn(async move {
                     let point = rope.offset_to_point(offset);
@@ -212,9 +211,9 @@ impl CompletionProvider for SqlCompletionProvider {
 
                     let request = InlineCompletionRequest {
                         request_id,
-                        prefix: prefix,
-                        suffix: suffix,
-                        context: context,
+                        prefix,
+                        suffix,
+                        context,
                     };
                     let prompt = build_completion_prompt(&request, &schema);
                     let suggestion = get_completion(&mut agent, prompt).await;
@@ -230,9 +229,7 @@ impl CompletionProvider for SqlCompletionProvider {
             });
 
             res
-        });
-
-        task
+        })
     }
 
     fn is_completion_trigger(

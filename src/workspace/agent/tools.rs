@@ -320,10 +320,10 @@ fn format_column_for_llm(col: &ColumnDetail, output: &mut String) {
         col_line.push_str(&format!(" (max length: {})", len));
     }
 
-    if let Some(prec) = col.numeric_precision {
-        if let Some(scale) = col.numeric_scale {
-            col_line.push_str(&format!(" (precision: {}, scale: {})", prec, scale));
-        }
+    if let Some(prec) = col.numeric_precision
+        && let Some(scale) = col.numeric_scale
+    {
+        col_line.push_str(&format!(" (precision: {}, scale: {})", prec, scale));
     }
 
     if let Some(ref desc) = col.description {

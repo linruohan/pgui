@@ -68,15 +68,14 @@ pub fn change_database(database_name: String, cx: &mut App) {
 /// Adds a new connection to the saved connections store.
 pub fn add_connection(connection: ConnectionInfo, cx: &mut App) {
     cx.spawn(async move |cx| {
-        if let Ok(store) = AppStore::singleton().await {
-            if let Ok(_) = store.connections().create(&connection).await {
-                if let Ok(connections) = store.connections().load_all().await {
-                    let _ = cx.update_global::<ConnectionState, _>(|app_state, _cx| {
-                        app_state.saved_connections = connections;
-                        app_state.active_connection = None;
-                    });
-                }
-            }
+        if let Ok(store) = AppStore::singleton().await
+            && let Ok(_) = store.connections().create(&connection).await
+            && let Ok(connections) = store.connections().load_all().await
+        {
+            let _ = cx.update_global::<ConnectionState, _>(|app_state, _cx| {
+                app_state.saved_connections = connections;
+                app_state.active_connection = None;
+            });
         }
     })
     .detach();
@@ -85,15 +84,14 @@ pub fn add_connection(connection: ConnectionInfo, cx: &mut App) {
 /// Updates an existing connection in the saved connections store.
 pub fn update_connection(connection: ConnectionInfo, cx: &mut App) {
     cx.spawn(async move |cx| {
-        if let Ok(store) = AppStore::singleton().await {
-            if let Ok(_) = store.connections().update(&connection).await {
-                if let Ok(connections) = store.connections().load_all().await {
-                    let _ = cx.update_global::<ConnectionState, _>(|app_state, _cx| {
-                        app_state.saved_connections = connections;
-                        app_state.active_connection = Some(connection);
-                    });
-                }
-            }
+        if let Ok(store) = AppStore::singleton().await
+            && let Ok(_) = store.connections().update(&connection).await
+            && let Ok(connections) = store.connections().load_all().await
+        {
+            let _ = cx.update_global::<ConnectionState, _>(|app_state, _cx| {
+                app_state.saved_connections = connections;
+                app_state.active_connection = Some(connection);
+            });
         }
     })
     .detach();
@@ -103,14 +101,13 @@ pub fn update_connection(connection: ConnectionInfo, cx: &mut App) {
 pub fn delete_connection(connection: ConnectionInfo, cx: &mut App) {
     let conn = connection.clone();
     cx.spawn(async move |cx| {
-        if let Ok(store) = AppStore::singleton().await {
-            if let Ok(_) = store.connections().delete(&conn.id).await {
-                if let Ok(connections) = store.connections().load_all().await {
-                    let _ = cx.update_global::<ConnectionState, _>(|app_state, _cx| {
-                        app_state.saved_connections = connections;
-                    });
-                }
-            }
+        if let Ok(store) = AppStore::singleton().await
+            && let Ok(_) = store.connections().delete(&conn.id).await
+            && let Ok(connections) = store.connections().load_all().await
+        {
+            let _ = cx.update_global::<ConnectionState, _>(|app_state, _cx| {
+                app_state.saved_connections = connections;
+            });
         }
     })
     .detach();

@@ -42,7 +42,7 @@ fn build_tree_items(tables: Vec<TableInfo>) -> Vec<TreeItem> {
     for table in tables {
         schema_map
             .entry(table.table_schema.clone())
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(table);
     }
 
@@ -218,7 +218,7 @@ impl TablesTree {
 
         let bg_color = if is_selected {
             cx.theme().list_active
-        } else if ix % 2 == 0 {
+        } else if ix.is_multiple_of(2) {
             cx.theme().list
         } else {
             cx.theme().list_even

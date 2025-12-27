@@ -35,7 +35,7 @@ where
         row_count += 1;
 
         // Flush periodically
-        if row_count % 10_000 == 0 {
+        if row_count.is_multiple_of(10_000) {
             writer.flush()?;
         }
     }
@@ -45,10 +45,10 @@ where
 }
 
 fn extract_json_value(row: &PgRow, index: usize, _col: &sqlx::postgres::PgColumn) -> Value {
-    if let Ok(raw) = row.try_get_raw(index) {
-        if raw.is_null() {
-            return Value::Null;
-        }
+    if let Ok(raw) = row.try_get_raw(index)
+        && raw.is_null()
+    {
+        return Value::Null;
     }
 
     // Try types in order of likelihood

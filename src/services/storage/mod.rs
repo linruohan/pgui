@@ -27,7 +27,7 @@ impl AppStore {
     /// Get or initialize the global AppStore singleton.
     /// Schema initialization and migration only run once.
     pub async fn singleton() -> Result<&'static Self> {
-        STORE.get_or_try_init(|| Self::init()).await
+        STORE.get_or_try_init(Self::init).await
     }
 
     pub async fn init() -> Result<Self> {

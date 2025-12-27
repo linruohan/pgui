@@ -84,23 +84,17 @@ impl ConnectionForm {
     }
 
     pub fn clear(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        let _ = self
-            .name
+        self.name
             .update(cx, |this, cx| this.set_value("", window, cx));
-        let _ = self
-            .hostname
+        self.hostname
             .update(cx, |this, cx| this.set_value("", window, cx));
-        let _ = self
-            .username
+        self.username
             .update(cx, |this, cx| this.set_value("", window, cx));
-        let _ = self
-            .password
+        self.password
             .update(cx, |this, cx| this.set_value("", window, cx));
-        let _ = self
-            .database
+        self.database
             .update(cx, |this, cx| this.set_value("", window, cx));
-        let _ = self
-            .port
+        self.port
             .update(cx, |this, cx| this.set_value("", window, cx));
 
         self.active_connection = None;
@@ -114,22 +108,22 @@ impl ConnectionForm {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let _ = self.name.update(cx, |this, cx| {
+        self.name.update(cx, |this, cx| {
             this.set_value(connection.name.clone(), window, cx)
         });
-        let _ = self.hostname.update(cx, |this, cx| {
+        self.hostname.update(cx, |this, cx| {
             this.set_value(connection.hostname.clone(), window, cx)
         });
-        let _ = self.username.update(cx, |this, cx| {
+        self.username.update(cx, |this, cx| {
             this.set_value(connection.username.clone(), window, cx)
         });
-        let _ = self.password.update(cx, |this, cx| {
+        self.password.update(cx, |this, cx| {
             this.set_value(connection.password.clone(), window, cx)
         });
-        let _ = self.database.update(cx, |this, cx| {
+        self.database.update(cx, |this, cx| {
             this.set_value(connection.database.clone(), window, cx)
         });
-        let _ = self.port.update(cx, |this, cx| {
+        self.port.update(cx, |this, cx| {
             this.set_value(connection.port.to_string(), window, cx)
         });
         self.active_connection = Some(connection.clone());

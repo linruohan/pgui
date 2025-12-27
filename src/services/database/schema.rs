@@ -121,10 +121,10 @@ impl DatabaseManager {
             let table_type: String = table_row.get("table_type");
             let description: Option<String> = table_row.get("description");
 
-            if let Some(ref filter_tables) = specific_tables {
-                if !filter_tables.contains(&table_name) {
-                    continue;
-                }
+            if let Some(ref filter_tables) = specific_tables
+                && !filter_tables.contains(&table_name)
+            {
+                continue;
             }
 
             // Get columns

@@ -25,10 +25,10 @@ impl ListDelegate for ConnectionListDelegate {
         _window: &mut Window,
         _cx: &mut Context<ListState<Self>>,
     ) {
-        if let Some(selected) = self.selected_index {
-            if let Some(conn) = self.matched_connections.get(selected.row) {
-                tracing::debug!("Selected connection: {}@{}", conn.username, conn.hostname);
-            }
+        if let Some(selected) = self.selected_index
+            && let Some(conn) = self.matched_connections.get(selected.row)
+        {
+            tracing::debug!("Selected connection: {}@{}", conn.username, conn.hostname);
         }
     }
 

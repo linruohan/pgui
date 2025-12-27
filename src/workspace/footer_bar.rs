@@ -53,7 +53,7 @@ impl Render for FooterBar {
             .icon(Icon::empty().path("icons/panel-left.svg"))
             .small()
             .ghost()
-            .selected(self.tables_active.clone())
+            .selected(self.tables_active)
             .tooltip("Toggle Tables Panel")
             .on_click(cx.listener(|this, _evt, _win, cx| {
                 this.tables_active = !this.tables_active;
@@ -69,7 +69,7 @@ impl Render for FooterBar {
             .icon(IconName::Bot)
             .small()
             .ghost()
-            .selected(self.agent_active.clone())
+            .selected(self.agent_active)
             .tooltip("Toggle Agent Panel")
             .on_click(cx.listener(|this, _evt, _win, cx| {
                 this.agent_active = !this.agent_active;
@@ -87,7 +87,7 @@ impl Render for FooterBar {
             .icon(Icon::empty().path("icons/history.svg"))
             .small()
             .ghost()
-            .selected(self.history_active.clone())
+            .selected(self.history_active)
             .tooltip("Toggle History Panel")
             .on_click(cx.listener(|this, _evt, _win, cx| {
                 this.history_active = !this.history_active;
@@ -134,7 +134,7 @@ impl Render for FooterBar {
             .justify_between()
             .items_center()
             .gap_1()
-            .when(!self.is_connected.clone(), |d| d.invisible())
+            .when(!self.is_connected, |d| d.invisible())
             .child(tables_button);
 
         let right_controls = div()
@@ -143,11 +143,11 @@ impl Render for FooterBar {
             .justify_between()
             .items_center()
             .gap_1()
-            .when(!self.is_connected.clone(), |d| d.invisible())
+            .when(!self.is_connected, |d| d.invisible())
             .child(history_button)
             .child(agent_button);
 
-        let footer = div()
+        div()
             .border_t_1()
             .text_xs()
             .bg(cx.theme().title_bar)
@@ -160,8 +160,6 @@ impl Render for FooterBar {
             .justify_between()
             .items_center()
             .child(left_controls)
-            .child(right_controls);
-
-        footer
+            .child(right_controls)
     }
 }
